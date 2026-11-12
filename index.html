@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+/* Runs before first paint: marks JS as available and picks the language (?lang=, saved choice, then browser language). */
+(function () {
+  var d = document.documentElement, l = null;
+  d.classList.add('js');
+  try { l = new URLSearchParams(location.search).get('lang') || localStorage.getItem('lang'); } catch (e) {}
+  if (!l) l = navigator.language || 'en';
+  l = /^zh/i.test(l) ? 'zh' : 'en';
+  d.setAttribute('data-lang', l);
+  d.lang = l === 'zh' ? 'zh-Hans' : 'en';
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Timothy Martin — Industrial software, from sensor to dashboard</title>
+<meta name="description" content="Timothy Martin builds production software for the factory floor: IoT machine monitoring, multi-camera capture, quality and HR systems.">
+<meta property="og:title" content="Timothy Martin — Industrial software, from sensor to dashboard">
+<meta property="og:description" content="Production systems for the factory floor: firmware, vision, databases and dashboards.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2308090b'/><text x='16' y='22' font-family='monospace' font-size='16' font-weight='700' text-anchor='middle' fill='%235eead4'>TM</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+:root {
+  --bg: #07080a;
+  --panel: #0d0f12;
+  --screen: #06080a;
+  --line: rgba(255,255,255,.08);
+  --line-strong: rgba(255,255,255,.16);
+  --text: #eceef1;
+  --soft: #c5c9d0;
+  --muted: #959ba6;
+  --accent: #5eead4;
+  --accent-2: #7aa2ff;
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC";
+  --mono: "JetBrains Mono", ui-monospace, Consolas, var(--cjk), monospace;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", var(--cjk), sans-serif;
+}
+* { box-sizing: border-box; margin: 0; }
+html { background: var(--bg); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  color: var(--text);
+  font: 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; overflow-wrap: break-word;
+}
+/* fine grain, one static fixed layer behind everything */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .08;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.2 0 0 0 -.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; }
+::selection { background: var(--accent); color: #04110e; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.wrap {
+  width: 100%; max-width: 1160px; margin-inline: auto;
+  padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right));
+}
+.mono { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.accent { color: var(--accent); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- language: every translatable text is an .en / .zh pair; only one shows ---- */
+html[data-lang="en"] .zh, html[data-lang="zh"] .en { display: none !important; }
+html[data-lang="zh"] body { line-height: 1.8; }
+html[data-lang="zh"] h1, html[data-lang="zh"] h2, html[data-lang="zh"] h3 { letter-spacing: 0; }
+html[data-lang="zh"] h1 { line-height: 1.18; max-width: none; }
+.zh { line-break: strict; }
+.nb { display: inline-block; } /* keeps a Chinese phrase on one line */
+/* short crossfade while the language is swapped: script.js holds html.lang-out for 150 ms, then always removes it */
+.hero > .wrap, section > .wrap, footer > .wrap { transition: opacity .28s var(--ease); }
+.lang-out .hero > .wrap, .lang-out section > .wrap, .lang-out footer > .wrap { opacity: 0; transition-duration: .15s; }
+
+/* ---- nav ---- */
+nav {
+  position: fixed; inset: 0 0 auto 0; z-index: 20; padding-top: env(safe-area-inset-top);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+  background: rgba(7,8,10,.72); border-bottom: 1px solid var(--line);
+}
+nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 60px; }
+nav .brand { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; padding-right: 10px; font-family: var(--mono); font-weight: 500; font-size: 15px; }
+nav .right { display: flex; align-items: center; gap: 16px; }
+nav .links { display: flex; gap: 2px; }
+nav .links a {
+  position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px;
+  font-size: 14px; color: var(--muted); border-radius: 8px; transition: color .2s var(--ease);
+}
+nav .links a[aria-current] { color: var(--text); }
+.progress { /* hairline scroll progress on the nav's bottom edge; script.js writes one scaleX per frame */
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transform: scaleX(0); transform-origin: 0 50%;
+}
+.lang { display: none; }
+.js .lang, .static .lang { display: inline-flex; }
+.lang button {
+  position: relative; z-index: 0; font: 500 12px/1 var(--mono); color: var(--muted); background: none; border: 0; cursor: pointer;
+  padding: 0 12px; height: 44px; min-width: 48px; transition: color .2s var(--ease); -webkit-tap-highlight-color: transparent;
+}
+.lang button::before { /* the visible pill is smaller than the 44px tap target */
+  content: ""; position: absolute; inset: 6px 0; z-index: -1; border: 1px solid var(--line-strong);
+  transition: background-color .2s var(--ease), border-color .2s var(--ease);
+}
+.lang button:first-child::before { border-radius: 8px 0 0 8px; border-right: 0; }
+.lang button:last-child::before { border-radius: 0 8px 8px 0; border-left: 0; }
+.lang button[aria-pressed="true"] { color: #08090b; }
+.lang button[aria-pressed="true"]::before { background: var(--text); border-color: var(--text); }
+.lang button:focus-visible { z-index: 1; }
+
+.menu-btn {
+  display: none; width: 44px; height: 44px; align-items: center; justify-content: center;
+  background: none; border: 0; color: var(--text); cursor: pointer; border-radius: 10px; -webkit-tap-highlight-color: transparent;
+}
+.bars { position: relative; display: block; width: 20px; height: 12px; }
+.bars i { position: absolute; left: 0; right: 0; height: 1.5px; background: currentColor; border-radius: 2px; transition: transform .25s var(--ease); }
+.bars i:first-child { top: 1px; }
+.bars i:last-child { bottom: 1px; }
+nav.open .bars i:first-child { transform: translateY(4.25px) rotate(45deg); }
+nav.open .bars i:last-child { transform: translateY(-4.25px) rotate(-45deg); }
+
+@media (min-width: 761px) {
+  nav .links a::after {
+    content: ""; position: absolute; left: 12px; right: 12px; bottom: 9px; height: 1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease);
+  }
+  nav .links a[aria-current]::after { transform: none; }
+}
+@media (max-width: 760px) {
+  nav .right { gap: 6px; }
+  .js .menu-btn { display: inline-flex; } /* no "order": the row is brand, menu, language in the DOM and on screen, and the links follow their button */
+  .js nav .links {
+    position: absolute; left: 0; right: 0; top: 100%; flex-direction: column; gap: 0;
+    padding: 4px max(20px, env(safe-area-inset-right)) 12px max(20px, env(safe-area-inset-left));
+    background: rgba(9,11,14,.98); border-bottom: 1px solid var(--line-strong);
+    box-shadow: 0 24px 40px -20px rgba(0,0,0,.8);
+    max-height: calc(100vh - 60px - env(safe-area-inset-top)); max-height: calc(100dvh - 60px - env(safe-area-inset-top));
+    overflow-y: auto; overscroll-behavior: contain;
+    visibility: hidden; opacity: 0; transform: translateY(-8px);
+    transition: opacity .2s var(--ease), transform .2s var(--ease), visibility 0s linear .2s;
+  }
+  .js nav.open .links { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
+  .js nav .links a { min-height: 54px; padding: 0 4px; font-size: 17px; color: var(--soft); border-radius: 0; border-bottom: 1px solid var(--line); }
+  .js nav .links a:last-child { border-bottom: 0; }
+  .js nav .links a[aria-current] { color: var(--accent); }
+  /* without JavaScript there is no toggle: show the links as a second row */
+  html:not(.js) nav .wrap { flex-wrap: wrap; height: auto; padding-bottom: 4px; }
+  html:not(.js) nav .right, html:not(.js) nav .links { width: 100%; }
+  html:not(.js) nav .links { justify-content: space-between; }
+  html:not(.js) nav .links a { padding: 0 6px; }
+  html:not(.js) .hero { padding-top: calc(148px + env(safe-area-inset-top)); }
+  html:not(.js) section { scroll-margin-top: 44px; }
+  /* failsafe (script.js threw: .js is dropped, .static set): same two rows, with the language switch kept beside the brand */
+  .static nav .right { display: contents; }
+  .static nav .links { order: 1; }
+}
+
+/* ---- hero ---- */
+.hero {
+  position: relative; isolation: isolate; overflow: hidden; overflow: clip;
+  min-height: 100vh; min-height: 100svh; display: grid; align-items: center;
+  padding: calc(104px + env(safe-area-inset-top)) 0 72px;
+}
+.hero > .wrap { min-width: 0; }
+.hero::before { /* blueprint grid */
+  content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 15%, transparent 75%);
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 15%, transparent 75%);
+}
+/* lighting: plain gradients, no blur filters, clipped by the hero */
+.glow { position: absolute; z-index: -1; pointer-events: none; }
+.glow.a {
+  inset: 0;
+  background:
+    radial-gradient(55% 50% at 8% 12%, rgba(94,234,212,.14), transparent 70%),
+    radial-gradient(50% 55% at 96% 82%, rgba(122,162,255,.15), transparent 70%),
+    linear-gradient(180deg, transparent 70%, var(--bg));
+}
+
+.hero-main { display: grid; gap: 40px; }
+.hero-main > * { min-width: 0; }
+h1 { font-size: clamp(2.35rem, 1rem + 6vw, 4.4rem); line-height: 1.03; letter-spacing: -.045em; font-weight: 600; max-width: 9em; }
+h1 .grad { background: linear-gradient(100deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { margin-top: 26px; max-width: 33em; font-size: clamp(1rem, .92rem + .5vw, 1.18rem); color: var(--muted); }
+html[data-lang="zh"] .lede { max-width: 30em; }
+.lede b { color: var(--text); font-weight: 500; }
+.cta { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; min-height: 48px; border-radius: 12px;
+  font-weight: 500; font-size: 15px; border: 1px solid var(--line-strong); background: rgba(255,255,255,.03);
+  transition: transform .2s var(--ease), background-color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn.primary { background: var(--text); color: #08090b; border-color: var(--text); }
+.btn:active { transform: scale(.98); }
+
+@media (min-width: 980px) {
+  .hero-main { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 56px; align-items: center; }
+  h1 { font-size: clamp(3.2rem, 4.6vw, 4.4rem); }
+}
+
+.facts { margin-top: 64px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+.facts div { padding: 22px 16px 0 0; }
+.facts strong { display: block; font-size: 2rem; font-weight: 600; letter-spacing: -.03em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.facts .mono { display: block; margin-top: 4px; }
+@media (max-width: 640px) { .facts { margin-top: 48px; grid-template-columns: repeat(2, 1fr); } }
+
+/* ---- glass panels: cards and the signal panel share one surface ---- */
+.card, .sig {
+  position: relative; border: 1px solid transparent; border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.008)) padding-box,
+    linear-gradient(var(--panel), var(--panel)) padding-box,
+    linear-gradient(160deg, rgba(255,255,255,.17), rgba(255,255,255,.05) 38%, rgba(255,255,255,.08)) border-box;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 28px 50px -34px rgba(0,0,0,.9);
+}
+.card::before, .sig::before { /* spotlight that follows the pointer */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .4s var(--ease);
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(94,234,212,.08), transparent 60%);
+}
+/* hairline border that lights up near the pointer. The ring is cut out of a filled box with mask-composite,
+   so the layer only exists where that is supported; everywhere else the plain border above is all there is. */
+@supports ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .card::after, .sig::after {
+    content: ""; position: absolute; inset: -1px; padding: 1px; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .4s var(--ease);
+    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(94,234,212,.75), rgba(122,162,255,.3) 45%, transparent 72%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+}
+.card > *, .sig > * { position: relative; }
+
+/* ---- hero set-piece: four switch signals -> a derived batch count -> plan vs. actual ---- */
+.sig {
+  --T: 6s;
+  width: 100%; max-width: 480px; padding: 16px; justify-self: end;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 28px 50px -34px rgba(0,0,0,.9), 0 50px 90px -50px rgba(94,234,212,.28);
+}
+.sig .mono { font-size: 10.5px; }
+.sig-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.sig-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(94,234,212,.14); }
+.sig-note { margin-left: auto; }
+.sig-screen { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--screen); border: 1px solid var(--line); }
+.sig-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) 8px; align-items: center; gap: 10px; color: var(--c, var(--accent)); }
+.sig-l { font: 500 11px/1 var(--mono); color: var(--muted); letter-spacing: .04em; }
+.sig-track {
+  position: relative; height: 26px; overflow: hidden;
+  background: linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px) 0 0 / 40px 100%;
+  border-right: 1px solid rgba(255,255,255,.3); /* "now" */
+}
+.sig-track::before { /* older signal fades out to the left */
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 45%; z-index: 1;
+  background: linear-gradient(90deg, var(--screen), rgba(6,8,10,0));
+}
+.sig-strip { position: absolute; right: 0; top: 0; display: block; fill: currentColor; fill-opacity: .12; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.sig-led { display: block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; opacity: .22; }
+.sig-out { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; margin-top: 10px; }
+.sig-cell { padding: 10px 12px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.02); }
+.sig-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sig-h .mono { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* one line in both languages */
+.sig-n { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; font: 500 26px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.sig-n b { font-weight: 500; }
+.sig-n small { font-size: 12px; color: var(--muted); }
+.sig-ok { flex: none; font: 500 10.5px/1 var(--mono); letter-spacing: .08em; color: var(--accent); opacity: .25; transition: opacity .4s var(--ease); }
+.sig.full .sig-ok { opacity: 1; }
+.sig-bar { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: 10px; }
+.sig-bar i { position: relative; height: 22px; border-radius: 4px; border: 1px solid var(--line-strong); overflow: hidden; }
+.sig-bar i::after {
+  content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, var(--accent), #3fc9b6);
+  opacity: 0; transform: scaleY(.2); transform-origin: bottom; transition: opacity .4s var(--ease), transform .4s var(--ease);
+}
+.sig-bar i.on::after { opacity: .92; transform: none; }
+
+/* the one continuous animation: runs only while .live, paused off-screen / in a hidden tab */
+.js .sig.live .sig-strip { animation: sig-scroll var(--T) linear infinite; will-change: transform; }
+.js .sig.live .sig-row:nth-child(1) .sig-led { animation: led1 var(--T) linear infinite; }
+.js .sig.live .sig-row:nth-child(2) .sig-led { animation: led2 var(--T) linear infinite; }
+.js .sig.live .sig-row:nth-child(3) .sig-led { animation: led3 var(--T) linear infinite; }
+.js .sig.live .sig-row:nth-child(4) .sig-led { animation: led4 var(--T) linear infinite; }
+.js .sig.live.paused .sig-strip, .js .sig.live.paused .sig-row .sig-led { animation-play-state: paused; }
+@keyframes sig-scroll { from { transform: translate3d(200px,0,0); } to { transform: translate3d(0,0,0); } }
+@keyframes led1 { 0%, 16.9% { opacity: .22; } 17%, 37% { opacity: 1; } 37.1%, 100% { opacity: .22; } }
+@keyframes led2 { 0%, 36.9% { opacity: .22; } 37%, 70% { opacity: 1; } 70.1%, 100% { opacity: .22; } }
+@keyframes led3 { 0%, 69.9% { opacity: .22; } 70%, 87% { opacity: 1; } 87.1%, 100% { opacity: .22; } }
+@keyframes led4 { 0%, 86.9% { opacity: .22; } 87%, 99.9% { opacity: 1; } 100% { opacity: .22; } }
+
+@media (max-width: 979px) { .sig { justify-self: start; } }
+@media (max-width: 520px) {
+  .sig { padding: 12px; border-radius: 16px; }
+  .sig-screen { padding: 10px; gap: 6px; }
+  .sig-top { margin-bottom: 10px; }
+  .sig-n { font-size: 22px; }
+  .sig-bar i { height: 18px; }
+}
+@media (max-width: 400px) { /* 320 px: "Plan vs. actual" + "OK" need about 122 px and now get about 143 */
+  .sig-out { gap: 8px; }
+  .sig-cell { padding: 10px 10px 12px; }
+  .sig-out .mono { letter-spacing: .03em; }
+}
+
+/* ---- sections ---- */
+section { position: relative; overflow: hidden; overflow: clip; padding: 112px 0; }
+section::before { /* hairline that fades at both ends */
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-strong) 20%, var(--line-strong) 80%, transparent);
+}
+#more { background: radial-gradient(45% 50% at 100% 0%, rgba(122,162,255,.07), transparent 70%); }
+#approach { background: radial-gradient(45% 45% at 0% 10%, rgba(94,234,212,.06), transparent 70%); }
+.head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 56px; }
+.head::after { content: ""; flex: 1; align-self: center; height: 1px; margin-left: 8px; background: linear-gradient(90deg, var(--line-strong), transparent); transform-origin: left; }
+h2 { font-size: clamp(1.7rem, 1.2rem + 2.4vw, 2.6rem); letter-spacing: -.035em; font-weight: 600; line-height: 1.12; }
+@media (max-width: 640px) { section { padding: 80px 0; } .head { margin-bottom: 36px; } }
+
+/* ---- case studies ---- */
+.cases { position: relative; counter-reset: case; }
+.case { counter-increment: case; scroll-margin-top: calc(84px + env(safe-area-inset-top)); padding: clamp(20px, 4vw, 44px); margin-bottom: 20px; display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(28px, 4vw, 56px); }
+/* case index 1.1 to 1.4: plain links in the page margin, shown only where that margin is wide enough.
+   It is positioned from the cards' own left edge (16 px clear of them), so it can never sit on a card. */
+.rail { display: none; }
+@media (min-width: 1360px) {
+  .rail { display: block; position: absolute; top: 0; bottom: 0; left: -80px; width: 64px; }
+  .rail ol { position: sticky; top: max(76px, calc(50vh - 88px)); list-style: none; padding: 0; }
+  .rail a {
+    display: flex; align-items: center; gap: 8px; min-height: 44px;
+    font: 400 11px/1 var(--mono); letter-spacing: .08em; color: var(--muted); transition: color .3s var(--ease);
+  }
+  .rail a::before { content: ""; flex: none; width: 24px; height: 1px; background: currentColor; transform: scaleX(.4); transform-origin: 0 50%; transition: transform .4s var(--ease); }
+  .rail a[aria-current] { color: var(--accent); }
+  .rail a[aria-current]::before { transform: none; }
+}
+.case > * { min-width: 0; }
+@media (max-width: 860px) { .case { grid-template-columns: 1fr; } }
+.case .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 18px; }
+.case h3 { font-size: clamp(1.3rem, 1rem + 1.5vw, 1.85rem); letter-spacing: -.03em; line-height: 1.16; font-weight: 600; margin-bottom: 14px; }
+html[data-lang="zh"] .case h3 { line-height: 1.32; }
+.case p { color: var(--muted); }
+.case ul { list-style: none; padding: 0; margin-top: 20px; display: grid; gap: 10px; }
+.case li { padding-left: 22px; position: relative; font-size: 15px; color: var(--soft); }
+.case li::before { content: ""; position: absolute; left: 0; top: .78em; width: 10px; height: 1px; background: var(--accent); }
+html[data-lang="zh"] .case li::before { top: .9em; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.tags > span { font-family: var(--mono); font-size: 11.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: rgba(255,255,255,.02); }
+
+/* flow diagram. These rules are its resting state: every LED on, every wire carrying signal.
+   The motion block at the end plays it once as a chain; --i is the step (node + the wire below it). */
+.flow { /* a dotted figure panel, the same dark screen as the signal panel, labelled with the case number */
+  position: relative; align-self: center; display: grid; gap: 0; --i: 0;
+  padding: 42px 16px 18px; border: 1px solid var(--line); border-radius: 16px;
+  background: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1.4px) 0 0 / 18px 18px, var(--screen);
+}
+.flow::before {
+  content: "1." counter(case); content: "1." counter(case) / ""; /* second form keeps the label out of the accessibility tree */
+  position: absolute; top: 15px; left: 17px; font: 400 11px/1 var(--mono); letter-spacing: .1em; color: var(--muted);
+}
+@media (max-width: 520px) { .flow { padding: 38px 12px 14px; } .flow::before { top: 14px; left: 13px; } }
+.flow > :nth-child(n+3) { --i: 1; }
+.flow > :nth-child(n+5) { --i: 2; }
+.flow > :nth-child(n+7) { --i: 3; }
+.node { position: relative; border: 1px solid var(--line-strong); border-radius: 12px; padding: 12px 40px 12px 16px; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012)), var(--panel); }
+.node small { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.node > span { font-size: 14.5px; font-weight: 500; }
+.node::before, .node::after { content: ""; position: absolute; right: 16px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; }
+.node::before { background: var(--accent); box-shadow: 0 0 0 3px rgba(94,234,212,.14); } /* status LED, same lamp as the signal panel */
+.node::after { border: 1px solid var(--accent); opacity: 0; } /* ring thrown once when the LED comes on */
+.wire { position: relative; height: 30px; width: 1px; margin-left: 28px; background: var(--line-strong); }
+.wire::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(94,234,212,.35), var(--accent)); transform-origin: 50% 0; }
+.wire::after { content: ""; position: absolute; left: -2px; top: -2.5px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); opacity: 0; } /* the travelling pulse */
+
+/* ---- more projects ---- */
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.grid > * { min-width: 0; }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+@media (min-width: 900px) { /* bento: a wide card beside a narrower one, then the reverse */
+  .grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .mini { grid-column: span 5; }
+  .mini:nth-child(1), .mini:nth-child(4) { grid-column: span 7; }
+  .mini:nth-child(1) h3, .mini:nth-child(4) h3 { font-size: 1.3rem; }
+}
+.mini { display: flex; flex-direction: column; padding: clamp(22px, 3vw, 30px); }
+.mini h3 { font-size: 1.15rem; letter-spacing: -.02em; font-weight: 600; margin: 10px 0 8px; line-height: 1.3; }
+.mini p { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
+/* one small line drawing per card, pinned to the card's bottom edge. These rules are its resting state. */
+.ill {
+  display: block; flex: none; width: 100%; max-width: 300px; height: auto; aspect-ratio: 240 / 64; margin-top: auto; overflow: hidden;
+  fill: none; stroke: rgba(255,255,255,.3); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round;
+}
+.ill .hot, .ill .scan { stroke: var(--accent); }
+.ill .fill { fill: var(--accent); stroke: none; }
+.ill .dash { stroke-dasharray: 2 6; }
+.ill .seat, .ill .lit { stroke: none; }
+.ill .scan { transform: translateX(99px); }
+.ill .draw { stroke: var(--accent); stroke-width: 1.6; }
+.ill .bars rect { fill: rgba(94,234,212,.16); stroke: rgba(94,234,212,.7); stroke-width: 1; transform-box: fill-box; transform-origin: 50% 100%; }
+
+/* ---- principles ---- */
+.principles {
+  display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.006));
+}
+.principles div { padding: 32px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); transition: background-color .3s var(--ease); }
+.principles div:nth-child(2n) { border-right: 0; }
+.principles div:nth-last-child(-n+2) { border-bottom: 0; }
+.principles h3 { font-size: 1.1rem; font-weight: 600; letter-spacing: -.02em; margin: 10px 0 8px; line-height: 1.3; }
+.principles p { color: var(--muted); font-size: 15px; }
+@media (max-width: 720px) {
+  .principles { grid-template-columns: 1fr; }
+  .principles div { border-right: 0; padding: 24px; }
+  .principles div:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+}
+
+.stack { margin-top: 56px; display: grid; grid-template-columns: 160px minmax(0, 1fr); font-size: 15px; }
+.stack dt, .stack dd { padding: 14px 0; border-top: 1px solid var(--line); }
+.stack dt { padding-top: 17px; }
+.stack dd { color: var(--soft); }
+@media (max-width: 560px) {
+  .stack { grid-template-columns: 1fr; margin-top: 40px; }
+  .stack dt { padding: 14px 0 0; }
+  .stack dd { padding: 2px 0 14px; border-top: 0; }
+}
+
+/* ---- contact ---- */
+.contact { text-align: center; padding: 140px 0; background: radial-gradient(50% 60% at 50% 100%, rgba(94,234,212,.1), transparent 70%); }
+.contact h2 { font-size: clamp(2rem, 1.2rem + 4.4vw, 4rem); max-width: 9.5em; margin: 18px auto 0; }
+html[data-lang="zh"] .contact h2 { max-width: none; line-height: 1.25; }
+.contact .cta { justify-content: center; }
+@media (max-width: 640px) { .contact { padding: 96px 0; } }
+footer { border-top: 1px solid var(--line); padding: 28px 0 calc(28px + env(safe-area-inset-bottom)); }
+footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+/* ---- pointer effects: only for devices that really hover, so touch never gets stuck states ---- */
+@media (hover: hover) and (pointer: fine) {
+  nav .links a:hover { color: var(--text); }
+  .lang button:hover { color: var(--text); }
+  .lang button[aria-pressed="true"]:hover { color: #08090b; }
+  .btn:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 14px 30px -18px rgba(94,234,212,.55); }
+  .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+  .card:hover::before, .card:hover::after, .sig:hover::before, .sig:hover::after { opacity: 1; }
+  .principles div:hover { background-color: rgba(255,255,255,.025); }
+  .rail a:hover { color: var(--text); }
+  .rail a:hover::before { transform: none; }
+}
+
+/* ================= motion =================
+   Every hidden-until-revealed state lives in this block, so it needs both JavaScript (html.js, set before first
+   paint) and a visitor who has not asked for reduced motion. Without either, the rules above are the whole,
+   static page. If script.js throws it drops .js again (and sets .static), which lands on that same page. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s var(--ease) var(--d, 0s), transform .7s var(--ease) var(--d, 0s); }
+  .js .reveal.in { opacity: 1; transform: none; }
+  .js .head.reveal::after { transform: scaleX(0); transition: transform .9s var(--ease) .15s; }
+  .js .head.reveal.in::after { transform: none; }
+
+  /* hero load sequence: the backdrop settles while headline, lede, buttons, signal panel and facts rise in
+     80 ms apart (the inline --d on each); the last one lands at about 1 s. No text is split. */
+  .js .hero::before, .js .glow.a { animation: fade .9s var(--ease) both; }
+
+  /* light stagger inside bullet lists, tag rows, the principles and the stack rows; --i is set per child by script.js */
+  .js .case ul > *, .js .tags > *, .js .principles > *, .js .stack > * {
+    opacity: 0; transform: translateY(10px);
+    transition: opacity .6s var(--ease) calc(var(--i, 0) * 55ms), transform .6s var(--ease) calc(var(--i, 0) * 55ms), background-color .3s var(--ease);
+  }
+  .js .case ul.in > *, .js .tags.in > *, .js .principles.in > *, .js .stack.in > * { opacity: 1; transform: none; }
+
+  /* flow diagram as cause and effect, once: LED lights, a pulse runs down the wire, the next LED lights */
+  .js .node { transition: opacity .45s var(--ease), border-color .45s var(--ease); transition-delay: calc(.1s + var(--i) * .5s); }
+  .js .node::before { transition: background-color .3s var(--ease), box-shadow .3s var(--ease); transition-delay: calc(.1s + var(--i) * .5s); }
+  .js .wire::before { transition: transform .4s var(--ease); transition-delay: calc(.2s + var(--i) * .5s); }
+  .js .flow:not(.in) .node { opacity: .5; border-color: var(--line); }
+  .js .flow:not(.in) .node::before { background-color: rgba(255,255,255,.2); box-shadow: none; }
+  .js .flow:not(.in) .wire::before { transform: scaleY(0); }
+  .js .flow.in .node::after { animation: ping .7s var(--ease) calc(.1s + var(--i) * .5s); }
+  .js .flow.in .wire::after { animation: travel .4s var(--ease) calc(.2s + var(--i) * .5s); }
+
+  /* bento drawings settle once, when the drawing itself scrolls into view: the inspection line slides to the
+     defect, marks and curve fade in, the bars rise. Transform and opacity only. */
+  .js .ill .scan { transition: transform .9s var(--ease) .15s; }
+  .js .ill .lit, .js .ill .draw { transition: opacity .9s var(--ease) .15s; }
+  .js .ill .hot, .js .ill .fill { transition: opacity .4s var(--ease) .85s; }
+  .js .ill .bars rect { transition: transform .6s var(--ease) calc(var(--n, 0) * 70ms + .15s); }
+  .js .ill:not(.in) .scan { transform: none; }
+  .js .ill:not(.in) .lit, .js .ill:not(.in) .draw, .js .ill:not(.in) .hot, .js .ill:not(.in) .fill { opacity: 0; }
+  .js .ill:not(.in) .bars rect { transform: scaleY(0); }
+
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes ping { from { transform: scale(1); opacity: .9; } to { transform: scale(3.6); opacity: 0; } }
+  @keyframes travel { from { transform: translateY(0); opacity: 1; } 80% { opacity: 1; } to { transform: translateY(30px); opacity: 0; } }
+}
+@media (hover: hover) and (pointer: fine) {
+  .js .mini.tilt { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s var(--ease), opacity .7s var(--ease); transition-delay: 0s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+  .js .mini.tilt { transform: none; }
+}
+
+.contact .mono.reveal { display: inline-block; }
+
+/* paper and Save-as-PDF: everything visible, dark text on white, no chrome */
+@media print {
+  :root { --bg: #fff; --panel: #fff; --screen: #fff; --text: #111; --soft: #222; --muted: #555; --accent: #0b7a6b; --accent-2: #2a4fb5; --line: rgba(0,0,0,.14); --line-strong: rgba(0,0,0,.3); }
+  html, body { background: #fff !important; color: #111; }
+  nav, .rail, .glow, .sig, .progress, body::before, .hero::before { display: none !important; }
+  .hero { min-height: 0; padding-top: 24px; }
+  h1 .grad { background: none; -webkit-text-fill-color: currentColor; color: var(--accent); }
+  .card, .node, .flow, section { background: none !important; box-shadow: none !important; }
+  .ill { stroke: rgba(0,0,0,.4); }
+  #seat circle { fill: #000; }
+  .card { break-inside: avoid; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* browsers without overflow: clip cannot make the index stick, so they do not get it */
+@supports not (overflow: clip) { .rail { display: none; } }
+@media print { .ill .bars rect { fill: none; stroke: var(--accent); } #seat-on circle { fill: var(--accent); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">TM<span class="accent" aria-hidden="true">_</span></a>
+    <div class="right">
+      <button type="button" class="menu-btn" aria-expanded="false" aria-controls="menu"><span class="sr"><span class="en">Menu</span><span class="zh" lang="zh-Hans">菜单</span></span><span class="bars" aria-hidden="true"><i></i><i></i></span></button>
+      <div class="links" id="menu">
+        <a href="#work"><span class="en">Work</span><span class="zh" lang="zh-Hans">项目</span></a>
+        <a href="#more"><span class="en">More</span><span class="zh" lang="zh-Hans">更多</span></a>
+        <a href="#approach"><span class="en">Approach</span><span class="zh" lang="zh-Hans">理念</span></a>
+        <a class="keep" href="#contact"><span class="en">Contact</span><span class="zh" lang="zh-Hans">联系</span></a>
+      </div>
+      <div class="lang" role="group" aria-label="Language / 语言">
+        <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-set-lang="zh" aria-pressed="false" lang="zh-Hans">中文</button>
+      </div>
+    </div>
+  </div>
+  <div class="progress" aria-hidden="true"></div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="glow a"></div>
+  <div class="wrap">
+    <div class="hero-main">
+    <div class="hero-copy">
+    <h1 class="reveal" style="--d:.08s">
+      <span class="en">Software that runs on the <span class="grad">factory floor.</span></span>
+      <span class="zh" lang="zh-Hans"><span class="nb">在<span class="grad">工厂车间</span></span><span class="nb">落地的软件。</span></span>
+    </h1>
+    <p class="lede reveal" style="--d:.16s">
+      <span class="en">I'm <b>Timothy Martin</b>, a Project Executive in industrial manufacturing. I design and ship production systems end to end — <b>firmware on the machine, cameras at the loading bay, Postgres in the cloud and the dashboard a supervisor actually reads.</b></span>
+      <span class="zh" lang="zh-Hans">我是 <b>Timothy Martin</b>，在工业制造行业担任项目执行员（Project Executive）。我端到端地设计并交付生产级系统——<b>从设备上的固件、装货区的摄像头、云端的 Postgres，到主管真正会看的看板。</b></span>
+    </p>
+    <div class="cta reveal" style="--d:.24s">
+      <a class="btn primary" href="#work"><span class="en">See the work ↓</span><span class="zh" lang="zh-Hans">查看项目 ↓</span></a>
+      <a class="btn" href="https://github.com/timomooo" target="_blank" rel="noopener">GitHub ↗</a>
+      <a class="btn" href="https://www.linkedin.com/in/timothy-martin-3945671a2" target="_blank" rel="noopener">LinkedIn ↗</a>
+    </div>
+    </div>
+    <div class="sig reveal" style="--d:.3s" aria-hidden="true">
+      <div class="sig-top">
+        <i class="sig-dot"></i>
+        <span class="mono"><span class="en">Signal trace</span><span class="zh" lang="zh-Hans">信号波形</span></span>
+        <span class="mono sig-note"><span class="en">Illustration</span><span class="zh" lang="zh-Hans">示意图</span></span>
+      </div>
+      <div class="sig-screen">
+        <div class="sig-row" style="--c:#5eead4"><span class="sig-l">SW1</span><div class="sig-track"><svg class="sig-strip" width="800" height="26" viewBox="0 0 800 26" focusable="false"><path d="M0 20h34v-14h40v14h126h34v-14h40v14h126h34v-14h40v14h126h34v-14h40v14h126"/></svg></div><i class="sig-led"></i></div>
+        <div class="sig-row" style="--c:#64d8e0"><span class="sig-l">SW2</span><div class="sig-track"><svg class="sig-strip" width="800" height="26" viewBox="0 0 800 26" focusable="false"><path d="M0 20h74v-14h66v14h60h74v-14h66v14h60h74v-14h66v14h60h74v-14h66v14h60"/></svg></div><i class="sig-led"></i></div>
+        <div class="sig-row" style="--c:#6ebdf0"><span class="sig-l">SW3</span><div class="sig-track"><svg class="sig-strip" width="800" height="26" viewBox="0 0 800 26" focusable="false"><path d="M0 20h140v-14h34v14h26h140v-14h34v14h26h140v-14h34v14h26h140v-14h34v14h26"/></svg></div><i class="sig-led"></i></div>
+        <div class="sig-row" style="--c:#7aa2ff"><span class="sig-l">SW4</span><div class="sig-track"><svg class="sig-strip" width="800" height="26" viewBox="0 0 800 26" focusable="false"><path d="M0 20h174v-14h26v14h174v-14h26v14h174v-14h26v14h174v-14h26v14"/></svg></div><i class="sig-led"></i></div>
+      </div>
+      <div class="sig-out">
+        <div class="sig-cell">
+          <span class="mono"><span class="en">Batches</span><span class="zh" lang="zh-Hans">批次</span></span>
+          <div class="sig-n"><b id="sig-n">03</b><small>/ 08</small></div>
+        </div>
+        <div class="sig-cell">
+          <div class="sig-h"><span class="mono"><span class="en">Plan vs. actual</span><span class="zh" lang="zh-Hans">计划与实际</span></span><span class="sig-ok">OK</span></div>
+          <div class="sig-bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <div class="facts reveal" style="--d:.32s">
+      <div><strong>8</strong><span class="mono"><span class="en">projects designed</span><span class="zh" lang="zh-Hans">个项目完成设计</span></span></div>
+      <div><strong>2</strong><span class="mono"><span class="en">live on site</span><span class="zh" lang="zh-Hans">个已现场上线</span></span></div>
+      <div><strong>10</strong><span class="mono"><span class="en">cameras, one button</span><span class="zh" lang="zh-Hans">台摄像头，一键抓拍</span></span></div>
+      <div><strong>0</strong><span class="mono"><span class="en">manual batch counts</span><span class="zh" lang="zh-Hans">次人工批次计数</span></span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section id="work">
+  <div class="wrap">
+    <div class="head reveal"><span class="mono accent">01</span><h2 id="work-title"><span class="en">Selected work</span><span class="zh" lang="zh-Hans">精选项目</span></h2></div>
+
+    <div class="cases">
+    <div class="rail" role="navigation" aria-labelledby="work-title">
+      <ol role="list">
+        <li><a id="rail-1" href="#case-1" aria-labelledby="rail-1 case-1-t">1.1</a></li>
+        <li><a id="rail-2" href="#case-2" aria-labelledby="rail-2 case-2-t">1.2</a></li>
+        <li><a id="rail-3" href="#case-3" aria-labelledby="rail-3 case-3-t">1.3</a></li>
+        <li><a id="rail-4" href="#case-4" aria-labelledby="rail-4 case-4-t">1.4</a></li>
+      </ol>
+    </div>
+    <article class="card case reveal" id="case-1">
+      <div>
+        <div class="meta">
+          <span class="mono accent"><span class="en">● Live in production</span><span class="zh" lang="zh-Hans">● 已投产运行</span></span>
+          <span class="mono"><span class="en">IoT · Full stack</span><span class="zh" lang="zh-Hans">物联网 · 全栈</span></span>
+        </div>
+        <h3 id="case-1-t"><span class="en">Real-time production monitoring for a mixing line</span><span class="zh" lang="zh-Hans">混料线的实时生产监控</span></h3>
+        <p><span class="en">Operators never key in a count. An ESP32 watches four position switches on each machine, and a server-side state machine derives every batch, mixing step and cycle time from those signals alone.</span><span class="zh" lang="zh-Hans">操作员从不手动录入产量。每台设备上由一块 ESP32 监测四个位置开关，服务器端的状态机仅凭这些信号，就能推导出每一个批次、每一个混料工步和周期时间。</span></p>
+        <ul>
+          <li><span class="en">Firmware buffers 200 events (~80 min) so a network outage loses no production data</span><span class="zh" lang="zh-Hans">固件可缓存 200 条事件（约 80 分钟），断网也不丢失生产数据</span></li>
+          <li><span class="en">Supervisor dashboards: plan vs. actual, schedule adherence, per-step mixing accuracy</span><span class="zh" lang="zh-Hans">主管看板：计划与实际对比、计划达成率、各工步混料时间准确度</span></li>
+          <li><span class="en">Day planning from Excel with a reviewed merge-or-replace diff, urgent orders, reassignment</span><span class="zh" lang="zh-Hans">从 Excel 导入当日计划，合并或替换前先审阅差异；支持插入急单与订单改派</span></li>
+          <li><span class="en">Per-user accounts, three-role hierarchy and a full audit log; authenticated device ingest</span><span class="zh" lang="zh-Hans">独立用户账号、三级角色权限与完整审计日志；设备上报须经身份验证</span></li>
+          <li><span class="en">Piloted on one machine, seven registered, architecture sized for a ten-machine rollout</span><span class="zh" lang="zh-Hans">已在一台设备上试点，七台完成登记，架构按十台设备的规模设计</span></li>
+        </ul>
+        <div class="tags"><span>ESP32 · C++</span><span>TypeScript</span><span>PostgreSQL</span><span>Zod</span><span>Railway</span><span>Vercel</span></div>
+      </div>
+      <div class="flow" role="list">
+        <div class="node" role="listitem"><small><span class="en">Machine</span><span class="zh" lang="zh-Hans">设备</span></small><span><span class="en">4 position switches</span><span class="zh" lang="zh-Hans">4 个位置开关</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Edge</span><span class="zh" lang="zh-Hans">边缘</span></small><span><span class="en">ESP32 · offline ring buffer</span><span class="zh" lang="zh-Hans">ESP32 · 离线环形缓冲</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Cloud</span><span class="zh" lang="zh-Hans">云端</span></small><span><span class="en">Ingest API · state machine</span><span class="zh" lang="zh-Hans">数据接入 API · 状态机</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">People</span><span class="zh" lang="zh-Hans">人员</span></small><span><span class="en">Operator &amp; supervisor views</span><span class="zh" lang="zh-Hans">操作员与主管界面</span></span></div>
+      </div>
+    </article>
+
+    <article class="card case reveal" id="case-2">
+      <div>
+        <div class="meta">
+          <span class="mono accent"><span class="en">● Deployed on site</span><span class="zh" lang="zh-Hans">● 已现场部署</span></span>
+          <span class="mono"><span class="en">Desktop · Imaging</span><span class="zh" lang="zh-Hans">桌面应用 · 影像</span></span>
+        </div>
+        <h3 id="case-2-t"><span class="en">Ten-camera pallet evidence capture</span><span class="zh" lang="zh-Hans">十摄像头托盘影像存证系统</span></h3>
+        <p><span class="en">One press photographs an outbound pallet from every side, the top, and its paperwork — filed as one timestamped evidence set. A companion station records the stacking on video.</span><span class="zh" lang="zh-Hans">一键即可从四周和顶部拍下出货托盘及其随货单据，并归档为一组带时间戳的存证影像。配套的另一工位则以视频录下码垛过程。</span></p>
+        <ul>
+          <li><span class="en">Concurrent capture across IP and USB cameras behind one adapter interface</span><span class="zh" lang="zh-Hans">网络摄像头与 USB 摄像头共用统一的适配器接口，并发抓拍</span></li>
+          <li><span class="en">Crash-safe by design: a capture folder is complete or absent, never torn</span><span class="zh" lang="zh-Hans">崩溃安全设计：每次拍摄的文件夹要么完整，要么不存在，绝不残缺</span></li>
+          <li><span class="en">Video recorded as fragmented MP4 that still plays after a power cut; gaps are logged, not hidden</span><span class="zh" lang="zh-Hans">视频以分片 MP4 录制，断电后仍可播放；中断的空档如实记录，绝不掩盖</span></li>
+          <li><span class="en">Synchronised multi-camera player, 90-day retention, kiosk mode, role-gated settings</span><span class="zh" lang="zh-Hans">多机位同步播放器、90 天保留策略、Kiosk 模式、按角色管控的设置</span></li>
+          <li><span class="en">Two builds from one source tree covering Windows 8 through 11, twelve test suites on both</span><span class="zh" lang="zh-Hans">同一套源码产出两个构建版本，覆盖 Windows 8 至 11，两个版本均通过十二个测试套件</span></li>
+        </ul>
+        <div class="tags"><span>Python</span><span>Qt</span><span>OpenCV</span><span>FFmpeg · PyAV</span><span>RTSP</span><span>PyInstaller</span></div>
+      </div>
+      <div class="flow" role="list">
+        <div class="node" role="listitem"><small><span class="en">Capture</span><span class="zh" lang="zh-Hans">采集</span></small><span><span class="en">8 side · 1 top · 1 document</span><span class="zh" lang="zh-Hans">8 侧面 · 1 顶部 · 1 单据</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Orchestrate</span><span class="zh" lang="zh-Hans">调度</span></small><span><span class="en">Parallel fetch · retry · validate</span><span class="zh" lang="zh-Hans">并行抓取 · 重试 · 校验</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Store</span><span class="zh" lang="zh-Hans">存储</span></small><span><span class="en">Atomic folder + metadata</span><span class="zh" lang="zh-Hans">原子化文件夹 + 元数据</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Review</span><span class="zh" lang="zh-Hans">回看</span></small><span><span class="en">Browser &amp; synced playback</span><span class="zh" lang="zh-Hans">浏览与同步回放</span></span></div>
+      </div>
+    </article>
+
+    <article class="card case reveal" id="case-3">
+      <div>
+        <div class="meta">
+          <span class="mono"><span class="en">Internal system</span><span class="zh" lang="zh-Hans">内部系统</span></span>
+          <span class="mono"><span class="en">Web · Security</span><span class="zh" lang="zh-Hans">Web · 安全</span></span>
+        </div>
+        <h3 id="case-3-t"><span class="en">HR appraisal platform with database-enforced access</span><span class="zh" lang="zh-Hans">人事绩效考核平台：访问权限由数据库强制执行</span></h3>
+        <p><span class="en">Employee master, reporting hierarchy and appraisal cycles — rebuilt from a single-file prototype into a typed monorepo where the database, not the UI, decides who sees what.</span><span class="zh" lang="zh-Hans">员工主数据、汇报层级与考核周期——从单文件原型重构为强类型的 monorepo，由数据库而非界面决定谁能看到什么。</span></p>
+        <ul>
+          <li><span class="en">Row-level security forced on every table; the API connects as a role that owns nothing</span><span class="zh" lang="zh-Hans">每张表都强制启用行级安全（RLS）；API 以一个不拥有任何对象的角色连接</span></li>
+          <li><span class="en">Permissions are data: changing what a role may do is an admin edit, not a deploy</span><span class="zh" lang="zh-Hans">权限即数据：调整某个角色的权限只需管理员改一条记录，无需重新部署</span></li>
+          <li><span class="en">Four separated database roles for migration, runtime, routing and backup</span><span class="zh" lang="zh-Hans">四个相互隔离的数据库角色，分别负责迁移、运行、路由与备份</span></li>
+          <li><span class="en">Numbered SQL migrations with a dedicated RLS test suite</span><span class="zh" lang="zh-Hans">带编号的 SQL 迁移脚本，并配有专门的 RLS 测试套件</span></li>
+        </ul>
+        <div class="tags"><span>React</span><span>TypeScript</span><span>Fastify</span><span>PostgreSQL RLS</span><span>Zod</span></div>
+      </div>
+      <div class="flow" role="list">
+        <div class="node" role="listitem"><small><span class="en">Client</span><span class="zh" lang="zh-Hans">客户端</span></small><span><span class="en">React · typed contracts</span><span class="zh" lang="zh-Hans">React · 类型化契约</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small>API</small><span><span class="en">One transaction per request</span><span class="zh" lang="zh-Hans">每个请求一个事务</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Policy</span><span class="zh" lang="zh-Hans">策略</span></small><span><span class="en">has_permission() in SQL</span><span class="zh" lang="zh-Hans">SQL 中的 has_permission()</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Data</span><span class="zh" lang="zh-Hans">数据</span></small><span><span class="en">Only the rows you may see</span><span class="zh" lang="zh-Hans">只返回你有权查看的行</span></span></div>
+      </div>
+    </article>
+
+    <article class="card case reveal" id="case-4">
+      <div>
+        <div class="meta">
+          <span class="mono"><span class="en">In development</span><span class="zh" lang="zh-Hans">开发中</span></span>
+          <span class="mono"><span class="en">Offline-first · Quality</span><span class="zh" lang="zh-Hans">离线优先 · 质量</span></span>
+        </div>
+        <h3 id="case-4-t"><span class="en">Paperless quality inspection records</span><span class="zh" lang="zh-Hans">无纸化质检记录</span></h3>
+        <p><span class="en">A tablet app for an inspector roaming a hot, metal-walled production floor with patchy coverage. Built so a record can answer a customer complaint years later.</span><span class="zh" lang="zh-Hans">一款平板应用，供质检员在高温、四面金属墙、信号时断时续的车间里巡检使用。它的设计目标是：多年以后，一条记录仍足以回应客户投诉。</span></p>
+        <ul>
+          <li><span class="en">Append-only: a lot's pass/fail is derived by replaying inspection events, never stored</span><span class="zh" lang="zh-Hans">只追加、不修改：批次合格与否由重放检验事件推导得出，从不直接存储</span></li>
+          <li><span class="en">Corrections supersede; nothing submitted is ever edited or deleted</span><span class="zh" lang="zh-Hans">更正以新记录取代旧记录；已提交的内容绝不修改或删除</span></li>
+          <li><span class="en">Specification limits are snapshotted so a later revision can't rewrite history</span><span class="zh" lang="zh-Hans">规格限值随记录一并快照保存，日后的规格修订无法改写历史</span></li>
+          <li><span class="en">Recording a value never waits on the network</span><span class="zh" lang="zh-Hans">录入数值从不需要等待网络</span></li>
+        </ul>
+        <div class="tags"><span>Python</span><span><span class="en">Event sourcing</span><span class="zh" lang="zh-Hans">事件溯源</span></span><span><span class="en">Offline sync</span><span class="zh" lang="zh-Hans">离线同步</span></span><span><span class="en">Android tablet</span><span class="zh" lang="zh-Hans">Android 平板</span></span></div>
+      </div>
+      <div class="flow" role="list">
+        <div class="node" role="listitem"><small><span class="en">Floor</span><span class="zh" lang="zh-Hans">车间</span></small><span><span class="en">Inspector + tablet</span><span class="zh" lang="zh-Hans">质检员 + 平板</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Local</span><span class="zh" lang="zh-Hans">本地</span></small><span><span class="en">Append inspection event</span><span class="zh" lang="zh-Hans">追加检验事件</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Sync</span><span class="zh" lang="zh-Hans">同步</span></small><span><span class="en">When coverage allows</span><span class="zh" lang="zh-Hans">有信号时同步</span></span></div><div class="wire" aria-hidden="true"></div>
+        <div class="node" role="listitem"><small><span class="en">Trace</span><span class="zh" lang="zh-Hans">追溯</span></small><span><span class="en">Lookup by order, replayed</span><span class="zh" lang="zh-Hans">按订单查询，重放还原</span></span></div>
+      </div>
+    </article>
+    </div>
+  </div>
+</section>
+
+<section id="more">
+  <div class="wrap">
+    <div class="head reveal"><span class="mono accent">02</span><h2><span class="en">More projects</span><span class="zh" lang="zh-Hans">更多项目</span></h2></div>
+    <div class="grid">
+      <article class="card mini reveal">
+        <span class="mono"><span class="en">Prototype · Computer vision</span><span class="zh" lang="zh-Hans">原型 · 计算机视觉</span></span>
+        <h3><span class="en">Surface-defect vision inspection</span><span class="zh" lang="zh-Hans">表面缺陷视觉检测</span></h3>
+        <p><span class="en">Raspberry Pi 5 and global-shutter camera rig for inline inspection of extruded product at 20 m/min. Anomaly detection instead of a labelled-defect model, shadow mode before authority, accuracy measured not claimed.</span><span class="zh" lang="zh-Hans">基于 Raspberry Pi 5 与全局快门相机搭建的装置，对线速 20 米/分钟的挤出产品进行在线检测。采用异常检测而非依赖缺陷标注的模型，先以影子模式运行、再赋予判定权，准确率靠实测而非宣称。</span></p>
+        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><path d="M0 18H240M0 46H240"/><path class="dash" d="M0 32H240"/><rect class="hot" x="149" y="22" width="20" height="20" rx="3"/><circle class="fill" cx="159" cy="32" r="2.2"/><path class="scan" d="M60 8V56"/></svg>
+      </article>
+      <article class="card mini reveal" style="--d:.08s">
+        <span class="mono"><span class="en">Design · Multi-tenant web</span><span class="zh" lang="zh-Hans">设计阶段 · 多租户 Web</span></span>
+        <h3><span class="en">Offline-first event check-in</span><span class="zh" lang="zh-Hans">离线优先的活动签到系统</span></h3>
+        <p><span class="en">Seats several hundred guests in one arrival spike from borrowed phones on an unreliable network. Attendance is event-sourced with a four-tier integrity scale on every record.</span><span class="zh" lang="zh-Hans">在网络不稳定的环境下，用借来的手机，在到场高峰期为数百位宾客完成签到入座。出席状态采用事件溯源，每条记录都带有四级可信度标记。</span></p>
+        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><defs><pattern id="seat" y="8" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="2.2" fill="#fff" fill-opacity=".2" stroke="none"/></pattern><pattern id="seat-on" y="8" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="2.2" fill="#5eead4" stroke="none"/></pattern></defs><rect class="seat" x="0" y="8" width="240" height="48" fill="url(#seat)"/><rect class="lit" x="0" y="8" width="156" height="48" fill="url(#seat-on)"/></svg>
+      </article>
+      <article class="card mini reveal">
+        <span class="mono"><span class="en">Personal · Embedded</span><span class="zh" lang="zh-Hans">个人项目 · 嵌入式</span></span>
+        <h3><span class="en">Electro-hydraulic steering controller</span><span class="zh" lang="zh-Hans">电动液压助力转向控制器</span></h3>
+        <p><span class="en">ESP32 controller for a retrofit power-steering pump: speed-based assist curve, CAN transport and a safety state machine. Simulation-stage and host-tested, with the protocol deliberately mocked until verified on the bench.</span><span class="zh" lang="zh-Hans">为改装的助力转向泵开发的 ESP32 控制器：随车速变化的助力曲线、CAN 通信与安全状态机。目前处于仿真阶段，已在主机端完成测试；在台架验证之前，通信协议特意以模拟实现代替。</span></p>
+        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><path d="M8 4V56H236"/><path class="dash" d="M73 25V56"/><path class="draw" d="M8 12C70 12 90 48 236 50"/><circle class="fill" cx="73" cy="24.8" r="3"/></svg>
+      </article>
+      <article class="card mini reveal" style="--d:.08s">
+        <span class="mono"><span class="en">Strategy · Industry 4.0</span><span class="zh" lang="zh-Hans">战略规划 · 工业 4.0</span></span>
+        <h3><span class="en">Two-plant digitalisation roadmap</span><span class="zh" lang="zh-Hans">两座工厂的数字化路线图</span></h3>
+        <p><span class="en">A seven-phase plan costed in real builder-hours, with a two-year payback rule, independently read baselines and an explicit point where expansion must stop or hire.</span><span class="zh" lang="zh-Hans">一份分七个阶段的规划，以真实的开发工时核算成本，设有两年回本的硬性规则、由他人独立读取的基线数据，并明确规定了何时必须停止扩张或增聘人手。</span></p>
+        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><path d="M0 58H240"/><g class="bars"><rect x="4" y="48" width="24" height="10" rx="2"/><rect style="--n:1" x="38" y="42" width="24" height="16" rx="2"/><rect style="--n:2" x="72" y="36" width="24" height="22" rx="2"/><rect style="--n:3" x="106" y="30" width="24" height="28" rx="2"/><rect style="--n:4" x="140" y="24" width="24" height="34" rx="2"/><rect style="--n:5" x="174" y="18" width="24" height="40" rx="2"/><rect style="--n:6" x="208" y="12" width="24" height="46" rx="2"/></g></svg>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="approach">
+  <div class="wrap">
+    <div class="head reveal"><span class="mono accent">03</span><h2><span class="en">How I build</span><span class="zh" lang="zh-Hans">构建理念</span></h2></div>
+    <div class="principles reveal">
+      <div><span class="mono accent">i.</span><h3><span class="en">The machine is the source of truth</span><span class="zh" lang="zh-Hans">设备是唯一的事实来源</span></h3><p><span class="en">If a sensor can know it, a person shouldn't have to type it. Data entry is a cost, not a feature.</span><span class="zh" lang="zh-Hans">传感器能知道的事，就不该让人手动输入。数据录入是成本，不是功能。</span></p></div>
+      <div><span class="mono accent">ii.</span><h3><span class="en">Offline is the normal case</span><span class="zh" lang="zh-Hans">离线才是常态</span></h3><p><span class="en">Factory networks drop. Every system buffers, retries and tells the truth about its gaps.</span><span class="zh" lang="zh-Hans">工厂网络随时可能中断。每个系统都会缓存、重试，并如实记录自己的数据缺口。</span></p></div>
+      <div><span class="mono accent">iii.</span><h3><span class="en">Derived, never asserted</span><span class="zh" lang="zh-Hans">只推导，不断言</span></h3><p><span class="en">Counts, verdicts and attendance are replayed from immutable events, so every number can be explained.</span><span class="zh" lang="zh-Hans">产量、判定结果与出席状态，都由不可变的事件重放得出，因此每个数字都有据可查。</span></p></div>
+      <div><span class="mono accent">iv.</span><h3><span class="en">Unknown is a valid answer</span><span class="zh" lang="zh-Hans">“未知”也是合格的答案</span></h3><p><span class="en">I don't guess a protocol, a tolerance or a business rule. I measure it, or I write down that it's open.</span><span class="zh" lang="zh-Hans">协议、公差、业务规则，我都不靠猜。要么实测，要么明确记录为待定事项。</span></p></div>
+    </div>
+    <dl class="stack reveal">
+      <dt class="mono"><span class="en">Embedded</span><span class="zh" lang="zh-Hans">嵌入式</span></dt><dd>ESP32, C++, PlatformIO, CAN, Raspberry Pi</dd>
+      <dt class="mono"><span class="en">Backend</span><span class="zh" lang="zh-Hans">后端</span></dt><dd><span class="en">TypeScript, Node, Fastify, Python, PostgreSQL, row-level security</span><span class="zh" lang="zh-Hans">TypeScript、Node、Fastify、Python、PostgreSQL、行级安全</span></dd>
+      <dt class="mono"><span class="en">Frontend</span><span class="zh" lang="zh-Hans">前端</span></dt><dd><span class="en">React, Vite, Qt desktop (PySide)</span><span class="zh" lang="zh-Hans">React、Vite、Qt 桌面应用（PySide）</span></dd>
+      <dt class="mono"><span class="en">Imaging</span><span class="zh" lang="zh-Hans">影像</span></dt><dd><span class="en">OpenCV, FFmpeg, RTSP, IP &amp; USB cameras, optics sizing</span><span class="zh" lang="zh-Hans">OpenCV、FFmpeg、RTSP、网络与 USB 摄像头、光学选型</span></dd>
+      <dt class="mono"><span class="en">Delivery</span><span class="zh" lang="zh-Hans">交付</span></dt><dd><span class="en">Requirements capture on the floor, ADRs, commissioning, iterating on field feedback</span><span class="zh" lang="zh-Hans">车间需求调研、架构决策记录（ADR）、调试投运、根据现场反馈迭代</span></dd>
+    </dl>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="wrap">
+    <span class="mono accent reveal"><span class="en">04 — Contact</span><span class="zh" lang="zh-Hans">04 — 联系</span></span>
+    <h2 class="reveal"><span class="en">Have a process that still runs on paper?</span><span class="zh" lang="zh-Hans"><span class="nb">还有流程</span><span class="nb">在靠纸笔运转吗？</span></span></h2>
+    <div class="cta reveal"><a class="btn primary" href="https://www.linkedin.com/in/timothy-martin-3945671a2" target="_blank" rel="noopener">LinkedIn ↗</a><a class="btn" href="https://github.com/timomooo" target="_blank" rel="noopener">github.com/timomooo ↗</a></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">© <span id="y">2026</span> Timothy Martin</span>
+    <span class="mono"><span class="en">Client details anonymised</span><span class="zh" lang="zh-Hans">客户信息已匿名处理</span></span>
+  </div>
+</footer>
+
+<script>
+var root = document.documentElement;
+var $ = function (s, c) { return (c || document).querySelector(s); };
+var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+var mq = function (q) { return window.matchMedia ? window.matchMedia(q) : { matches: false }; };
+var onMq = function (m, fn) { if (m.addEventListener) m.addEventListener('change', fn); else if (m.addListener) m.addListener(fn); };
+var reduce = mq('(prefers-reduced-motion: reduce)');
+var fine = mq('(hover: hover) and (pointer: fine)');
+
+/* language switch: kept outside the try below, so it keeps working even if an enhancement fails */
+var META = {
+  en: { title: 'Timothy Martin — Industrial software, from sensor to dashboard',
+        desc: 'Timothy Martin builds production software for the factory floor: IoT machine monitoring, multi-camera capture, quality and HR systems.' },
+  zh: { title: 'Timothy Martin — 工业软件：从传感器到看板',
+        desc: 'Timothy Martin 为工厂车间构建生产级软件：物联网设备监控、多摄像头影像采集、质量与人事系统。' }
+};
+var langTimer = 0, afterLang = function () {};
+function setLang(l, save, fade) {
+  /* the buttons answer at once; the text swaps at the bottom of a 150 ms fade */
+  $$('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setLang === l)); });
+  if (save) { try { localStorage.setItem('lang', l); } catch (e) {} }
+  var swap = function () {
+    root.classList.remove('lang-out'); /* first, so nothing below can leave the page faded */
+    /* text lengths differ between languages: remember the block being read and put it back where it was */
+    var keep = null, top0 = 0;
+    if (window.pageYOffset > 0) $$('.hero-copy, .sig, .facts, .head, .card, .principles, .stack, .contact h2').some(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.bottom > 60) { keep = el; top0 = r.top; return true; }
+    });
+    root.setAttribute('data-lang', l);
+    root.lang = l === 'zh' ? 'zh-Hans' : 'en';
+    document.title = META[l].title;
+    var m = $('meta[name="description"]');
+    if (m) m.content = META[l].desc;
+    if (keep) {
+      var dy = keep.getBoundingClientRect().top - top0;
+      if (Math.abs(dy) > 1) { root.style.scrollBehavior = 'auto'; window.scrollBy(0, dy); root.style.scrollBehavior = ''; }
+    }
+    afterLang();
+  };
+  /* every call cancels the pending swap and then either swaps now or schedules exactly one new swap,
+     so rapid switching can never strand .lang-out */
+  clearTimeout(langTimer);
+  if (fade && !reduce.matches && root.getAttribute('data-lang') !== l) {
+    root.classList.add('lang-out');
+    langTimer = setTimeout(swap, 150);
+  } else swap();
+}
+setLang(root.getAttribute('data-lang') === 'zh' ? 'zh' : 'en', false, false);
+$$('[data-set-lang]').forEach(function (b) { b.addEventListener('click', function () {
+  setLang(b.dataset.setLang, true, true);
+  try { var u = new URL(location.href); if (u.searchParams.has('lang')) { u.searchParams.delete('lang'); history.replaceState(null, '', u); } } catch (e) {}
+}); });
+
+/* Everything below is enhancement. If any of it throws while setting up, the catch at the end drops html.js
+   (every hidden or animated state is gated behind it) and sets html.static: all content visible, nothing moving. */
+try {
+$('#y').textContent = new Date().getFullYear();
+var hasIO = 'IntersectionObserver' in window;
+var flows = $$('.flow');
+
+/* stagger indexes (A's --i pattern); a stack row is a dt + dd pair */
+$$('.case ul, .tags, .principles, .stack').forEach(function (g) {
+  var pair = g.classList.contains('stack');
+  Array.prototype.forEach.call(g.children, function (c, i) { c.style.setProperty('--i', pair ? i >> 1 : i); });
+});
+
+/* facts count up once, when the strip is revealed. The markup's own text is put back at the end (by the last frame,
+   or by the timer if frames stop), 0 is left alone, and nothing is touched unless the strip is actually shown. */
+var lead = 320; /* during the hero load sequence the strip itself arrives 320 ms in (its inline --d) */
+var countFacts = function (box) {
+  $$('strong', box).forEach(function (s, k) {
+    var txt = s.textContent, to = parseInt(txt, 10);
+    if (!to) return;
+    var t0 = performance.now() + lead + k * 70;
+    var done = function () { s.textContent = txt; };
+    var step = function (now) {
+      var p = (now - t0) / 600;
+      if (p >= 1) return done();
+      s.textContent = Math.round(to * (1 - Math.pow(1 - Math.max(0, p), 3)));
+      requestAnimationFrame(step);
+    };
+    s.textContent = '0';
+    requestAnimationFrame(step);
+    setTimeout(done, lead + k * 70 + 700);
+  });
+};
+
+/* scroll reveal, once per element */
+var show = function (el) {
+  el.classList.add('in');
+  if (el.classList.contains('facts') && !reduce.matches) countFacts(el);
+};
+var targets = $$('.reveal, .case ul, .tags, .ill');
+if (!hasIO) {
+  targets.forEach(show);
+  flows.forEach(function (f) { f.classList.add('in'); });
+} else {
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) { io.unobserve(e.target); show(e.target); }
+    });
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0 });
+  targets.forEach(function (el) { io.observe(el); });
+
+  /* flow diagrams: play the chain once, when the diagram's top passes the 70% line (any viewport height), then rest */
+  var seen = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) { seen.unobserve(e.target); e.target.classList.add('in'); }
+    });
+  }, { rootMargin: '0px 0px -30% 0px' });
+  flows.forEach(function (f) { seen.observe(f); });
+}
+/* once the hero load sequence is over, hero parts still below the fold (a phone) should not wait for their load-time delay */
+setTimeout(function () {
+  lead = 0;
+  $$('.hero .reveal:not(.in)').forEach(function (el) { el.style.setProperty('--d', '0s'); });
+}, 1200);
+
+/* mobile menu: a plain disclosure. Escape closes it and returns focus to the button; no focus trap. */
+(function () {
+  var nav = $('nav'), btn = $('.menu-btn'), menu = $('#menu');
+  if (!nav || !btn || !menu) return;
+  var isOpen = function () { return nav.classList.contains('open'); };
+  function setMenu(open, refocus) {
+    nav.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    if (!open && refocus) btn.focus();
+  }
+  btn.addEventListener('click', function () { setMenu(!isOpen()); });
+  menu.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen()) setMenu(false, true); });
+  document.addEventListener('pointerdown', function (e) { if (isOpen() && !nav.contains(e.target)) setMenu(false); }, { passive: true });
+  nav.addEventListener('focusout', function (e) { if (isOpen() && e.relatedTarget && !nav.contains(e.relatedTarget)) setMenu(false); });
+  onMq(mq('(min-width: 761px)'), function (e) { if (e.matches) setMenu(false); });
+})();
+
+/* nav: scroll-progress hairline and the section being read.
+   The scroll listener only schedules a frame; the frame reads the scroll offset and writes one transform.
+   Page height is measured elsewhere (load, resize, content resize, language switch), never while scrolling. */
+(function () {
+  var bar = $('.progress'), links = $$('#menu a');
+  var max = 1, ticking = false, spyId = '', atEnd = false;
+  var paint = function () {
+    var id = atEnd ? 'contact' : spyId;
+    links.forEach(function (a) {
+      if (a.getAttribute('href') === '#' + id) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    });
+  };
+  var update = function () {
+    ticking = false;
+    var y = window.pageYOffset;
+    if (bar) bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0, y / max)).toFixed(4) + ')';
+    var end = y > 8 && y >= max - 8; /* at the bottom of the page the last section is current, even when a tall screen keeps it below the spy line */
+    if (end !== atEnd) { atEnd = end; paint(); }
+  };
+  var measure = function () { max = Math.max(1, root.scrollHeight - window.innerHeight); update(); };
+  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+  window.addEventListener('resize', measure, { passive: true });
+  window.addEventListener('load', measure);
+  if ('ResizeObserver' in window) new ResizeObserver(measure).observe(document.body); /* fonts and anything else that changes the page height */
+  afterLang = measure;
+  measure();
+
+  if (!hasIO) return;
+  var spy = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) spyId = e.target.id; });
+    paint();
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  ['top', 'work', 'more', 'approach', 'contact'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) spy.observe(el);
+  });
+
+  /* case index (wide screens): the case study crossing a line 25-30% down the screen is the current entry.
+     The line sits that high so the case an index link has just scrolled to (its top lands under the nav) is the one marked. */
+  var cases = $$('.case'), marks = $$('.rail a'), on = [];
+  if (!marks.length) return;
+  var spyCase = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { on[cases.indexOf(e.target)] = e.isIntersecting; });
+    var k = on.indexOf(true);
+    marks.forEach(function (a, i) {
+      if (i === k) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    });
+  }, { rootMargin: '-100px 0px -70% 0px' });
+  cases.forEach(function (c) { spyCase.observe(c); });
+})();
+
+/* hero set-piece: CSS scrolls the four traces; each completed pattern ticks the derived batch count.
+   It only runs while on screen, in a visible tab, and when motion is allowed. */
+(function () {
+  var sig = $('.sig');
+  if (!sig) return;
+  var strip = $('.sig-strip', sig), num = $('#sig-n'), segs = $$('.sig-bar i', sig);
+  if (!strip || !num || !segs.length) return;
+  var n = segs.filter(function (s) { return s.classList.contains('on'); }).length;
+  var onscreen = !('IntersectionObserver' in window);
+  function sync() {
+    if (reduce.matches) { sig.classList.remove('live'); return; }
+    sig.classList.add('live');
+    sig.classList.toggle('paused', !onscreen || document.hidden);
+  }
+  strip.addEventListener('animationiteration', function () {
+    n = n >= segs.length ? 1 : n + 1;
+    num.textContent = (n < 10 ? '0' : '') + n;
+    segs.forEach(function (s, i) { s.classList.toggle('on', i < n); });
+    sig.classList.toggle('full', n === segs.length);
+    if (num.animate) num.animate(
+      [{ transform: 'translateY(5px)', opacity: .3 }, { transform: 'none', opacity: 1 }],
+      { duration: 320, easing: 'cubic-bezier(.2,.7,.2,1)' });
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      onscreen = es[es.length - 1].isIntersecting;
+      sync();
+    }).observe(sig);
+  }
+  document.addEventListener('visibilitychange', sync);
+  onMq(reduce, sync);
+  sync();
+})();
+
+/* pointer-only depth: spotlight + lit border on panels, a very gentle tilt on the small cards,
+   and a soft light in the hero. All of it is skipped for touch and for reduced motion. */
+(function () {
+  var cur = null, raf = 0;
+  function apply() {
+    raf = 0;
+    if (!cur) return;
+    var el = cur.el, r = el.getBoundingClientRect();
+    var x = cur.x - r.left, y = cur.y - r.top;
+    el.style.setProperty('--mx', x.toFixed(1) + 'px');
+    el.style.setProperty('--my', y.toFixed(1) + 'px');
+    if (el.classList.contains('mini') && !reduce.matches && r.width && r.height) {
+      el.style.setProperty('--rx', ((.5 - y / r.height) * 5).toFixed(2) + 'deg');
+      el.style.setProperty('--ry', ((x / r.width - .5) * 5).toFixed(2) + 'deg');
+      el.classList.add('tilt');
+    }
+  }
+  $$('.card, .sig').forEach(function (el) {
+    el.addEventListener('pointermove', function (e) {
+      if (!fine.matches || reduce.matches || e.pointerType === 'touch') return;
+      cur = { el: el, x: e.clientX, y: e.clientY };
+      if (!raf) raf = requestAnimationFrame(apply);
+    }, { passive: true });
+    el.addEventListener('pointerleave', function () {
+      if (cur && cur.el === el) cur = null;
+      el.classList.remove('tilt');
+    });
+  });
+
+})();
+} catch (err) {
+  root.classList.remove('js');
+  root.classList.add('static');
+  if (window.console) console.error(err);
+}
+</script>
+</body>
+</html>
