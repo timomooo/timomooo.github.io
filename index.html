@@ -389,19 +389,6 @@ html[data-lang="zh"] .case li::before { top: .9em; }
 .mini { display: flex; flex-direction: column; padding: clamp(22px, 3vw, 30px); }
 .mini h3 { font-size: 1.15rem; letter-spacing: -.02em; font-weight: 600; margin: 10px 0 8px; line-height: 1.3; }
 .mini p { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
-/* one small line drawing per card, pinned to the card's bottom edge. These rules are its resting state. */
-.ill {
-  display: block; flex: none; width: 100%; max-width: 300px; height: auto; aspect-ratio: 240 / 64; margin-top: auto; overflow: hidden;
-  fill: none; stroke: rgba(255,255,255,.3); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round;
-}
-.ill .hot, .ill .scan { stroke: var(--accent); }
-.ill .fill { fill: var(--accent); stroke: none; }
-.ill .dash { stroke-dasharray: 2 6; }
-.ill .seat, .ill .lit { stroke: none; }
-.ill .scan { transform: translateX(99px); }
-.ill .draw { stroke: var(--accent); stroke-width: 1.6; }
-.ill .bars rect { fill: rgba(94,234,212,.16); stroke: rgba(94,234,212,.7); stroke-width: 1; transform-box: fill-box; transform-origin: 50% 100%; }
-
 /* ---- principles ---- */
 .principles {
   display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
@@ -483,13 +470,6 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
 
   /* bento drawings settle once, when the drawing itself scrolls into view: the inspection line slides to the
      defect, marks and curve fade in, the bars rise. Transform and opacity only. */
-  .js .ill .scan { transition: transform .9s var(--ease) .15s; }
-  .js .ill .lit, .js .ill .draw { transition: opacity .9s var(--ease) .15s; }
-  .js .ill .hot, .js .ill .fill { transition: opacity .4s var(--ease) .85s; }
-  .js .ill .bars rect { transition: transform .6s var(--ease) calc(var(--n, 0) * 70ms + .15s); }
-  .js .ill:not(.in) .scan { transform: none; }
-  .js .ill:not(.in) .lit, .js .ill:not(.in) .draw, .js .ill:not(.in) .hot, .js .ill:not(.in) .fill { opacity: 0; }
-  .js .ill:not(.in) .bars rect { transform: scaleY(0); }
 
   @keyframes fade { from { opacity: 0; } }
   @keyframes ping { from { transform: scale(1); opacity: .9; } to { transform: scale(3.6); opacity: 0; } }
@@ -515,15 +495,27 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
   .hero { min-height: 0; padding-top: 24px; }
   h1 .grad { background: none; -webkit-text-fill-color: currentColor; color: var(--accent); }
   .card, .node, .flow, section { background: none !important; box-shadow: none !important; }
-  .ill { stroke: rgba(0,0,0,.4); }
-  #seat circle { fill: #000; }
   .card { break-inside: avoid; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
 /* browsers without overflow: clip cannot make the index stick, so they do not get it */
 @supports not (overflow: clip) { .rail { display: none; } }
-@media print { .ill .bars rect { fill: none; stroke: var(--accent); } #seat-on circle { fill: var(--accent); } }
+
+/* ---- project illustrations ---- */
+.shot {
+  display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--screen);
+}
+/* case studies: text on the left across both rows, picture above the diagram on the right */
+.case > div:first-child { grid-row: span 2; }
+.case > .shot { align-self: end; }
+.case > .flow { align-self: start; }
+@media (max-width: 860px) {
+  .case > div:first-child { grid-row: auto; }
+  .case > .shot { order: -1; } /* on a phone the picture opens the card */
+}
+.mini .shot { margin-bottom: 20px; border-radius: 12px; }
 </style>
 </head>
 <body>
@@ -631,6 +623,7 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
         </ul>
         <div class="tags"><span>ESP32 · C++</span><span>TypeScript</span><span>PostgreSQL</span><span>Zod</span><span>Railway</span><span>Vercel</span></div>
       </div>
+      <img class="shot" src="img/monitoring-720.webp" srcset="img/monitoring-720.webp 720w, img/monitoring-1200.webp 1200w" sizes="(min-width: 861px) 460px, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
       <div class="flow" role="list">
         <div class="node" role="listitem"><small><span class="en">Machine</span><span class="zh" lang="zh-Hans">设备</span></small><span><span class="en">4 position switches</span><span class="zh" lang="zh-Hans">4 个位置开关</span></span></div><div class="wire" aria-hidden="true"></div>
         <div class="node" role="listitem"><small><span class="en">Edge</span><span class="zh" lang="zh-Hans">边缘</span></small><span><span class="en">ESP32 · offline ring buffer</span><span class="zh" lang="zh-Hans">ESP32 · 离线环形缓冲</span></span></div><div class="wire" aria-hidden="true"></div>
@@ -656,6 +649,7 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
         </ul>
         <div class="tags"><span>Python</span><span>Qt</span><span>OpenCV</span><span>FFmpeg · PyAV</span><span>RTSP</span><span>PyInstaller</span></div>
       </div>
+      <img class="shot" src="img/pallet-capture-720.webp" srcset="img/pallet-capture-720.webp 720w, img/pallet-capture-1200.webp 1200w" sizes="(min-width: 861px) 460px, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
       <div class="flow" role="list">
         <div class="node" role="listitem"><small><span class="en">Capture</span><span class="zh" lang="zh-Hans">采集</span></small><span><span class="en">8 side · 1 top · 1 document</span><span class="zh" lang="zh-Hans">8 侧面 · 1 顶部 · 1 单据</span></span></div><div class="wire" aria-hidden="true"></div>
         <div class="node" role="listitem"><small><span class="en">Orchestrate</span><span class="zh" lang="zh-Hans">调度</span></small><span><span class="en">Parallel fetch · retry · validate</span><span class="zh" lang="zh-Hans">并行抓取 · 重试 · 校验</span></span></div><div class="wire" aria-hidden="true"></div>
@@ -680,6 +674,7 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
         </ul>
         <div class="tags"><span>React</span><span>TypeScript</span><span>Fastify</span><span>PostgreSQL RLS</span><span>Zod</span></div>
       </div>
+      <img class="shot" src="img/hr-access-720.webp" srcset="img/hr-access-720.webp 720w, img/hr-access-1200.webp 1200w" sizes="(min-width: 861px) 460px, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
       <div class="flow" role="list">
         <div class="node" role="listitem"><small><span class="en">Client</span><span class="zh" lang="zh-Hans">客户端</span></small><span><span class="en">React · typed contracts</span><span class="zh" lang="zh-Hans">React · 类型化契约</span></span></div><div class="wire" aria-hidden="true"></div>
         <div class="node" role="listitem"><small>API</small><span><span class="en">One transaction per request</span><span class="zh" lang="zh-Hans">每个请求一个事务</span></span></div><div class="wire" aria-hidden="true"></div>
@@ -704,6 +699,7 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
         </ul>
         <div class="tags"><span>Python</span><span><span class="en">Event sourcing</span><span class="zh" lang="zh-Hans">事件溯源</span></span><span><span class="en">Offline sync</span><span class="zh" lang="zh-Hans">离线同步</span></span><span><span class="en">Android tablet</span><span class="zh" lang="zh-Hans">Android 平板</span></span></div>
       </div>
+      <img class="shot" src="img/qc-records-720.webp" srcset="img/qc-records-720.webp 720w, img/qc-records-1200.webp 1200w" sizes="(min-width: 861px) 460px, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
       <div class="flow" role="list">
         <div class="node" role="listitem"><small><span class="en">Floor</span><span class="zh" lang="zh-Hans">车间</span></small><span><span class="en">Inspector + tablet</span><span class="zh" lang="zh-Hans">质检员 + 平板</span></span></div><div class="wire" aria-hidden="true"></div>
         <div class="node" role="listitem"><small><span class="en">Local</span><span class="zh" lang="zh-Hans">本地</span></small><span><span class="en">Append inspection event</span><span class="zh" lang="zh-Hans">追加检验事件</span></span></div><div class="wire" aria-hidden="true"></div>
@@ -720,28 +716,28 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
     <div class="head reveal"><span class="mono accent">02</span><h2><span class="en">More projects</span><span class="zh" lang="zh-Hans">更多项目</span></h2></div>
     <div class="grid">
       <article class="card mini reveal">
+        <img class="shot" src="img/vision-inspection-720.webp" srcset="img/vision-inspection-720.webp 720w, img/vision-inspection-1200.webp 1200w" sizes="(min-width: 900px) 600px, (min-width: 721px) 50vw, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
         <span class="mono"><span class="en">Prototype · Computer vision</span><span class="zh" lang="zh-Hans">原型 · 计算机视觉</span></span>
         <h3><span class="en">Surface-defect vision inspection</span><span class="zh" lang="zh-Hans">表面缺陷视觉检测</span></h3>
         <p><span class="en">Raspberry Pi 5 and global-shutter camera rig for inline inspection of extruded product at 20 m/min. Anomaly detection instead of a labelled-defect model, shadow mode before authority, accuracy measured not claimed.</span><span class="zh" lang="zh-Hans">基于 Raspberry Pi 5 与全局快门相机搭建的装置，对线速 20 米/分钟的挤出产品进行在线检测。采用异常检测而非依赖缺陷标注的模型，先以影子模式运行、再赋予判定权，准确率靠实测而非宣称。</span></p>
-        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><path d="M0 18H240M0 46H240"/><path class="dash" d="M0 32H240"/><rect class="hot" x="149" y="22" width="20" height="20" rx="3"/><circle class="fill" cx="159" cy="32" r="2.2"/><path class="scan" d="M60 8V56"/></svg>
       </article>
       <article class="card mini reveal" style="--d:.08s">
+        <img class="shot" src="img/event-checkin-720.webp" srcset="img/event-checkin-720.webp 720w, img/event-checkin-1200.webp 1200w" sizes="(min-width: 900px) 600px, (min-width: 721px) 50vw, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
         <span class="mono"><span class="en">Design · Multi-tenant web</span><span class="zh" lang="zh-Hans">设计阶段 · 多租户 Web</span></span>
         <h3><span class="en">Offline-first event check-in</span><span class="zh" lang="zh-Hans">离线优先的活动签到系统</span></h3>
         <p><span class="en">Seats several hundred guests in one arrival spike from borrowed phones on an unreliable network. Attendance is event-sourced with a four-tier integrity scale on every record.</span><span class="zh" lang="zh-Hans">在网络不稳定的环境下，用借来的手机，在到场高峰期为数百位宾客完成签到入座。出席状态采用事件溯源，每条记录都带有四级可信度标记。</span></p>
-        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><defs><pattern id="seat" y="8" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="2.2" fill="#fff" fill-opacity=".2" stroke="none"/></pattern><pattern id="seat-on" y="8" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="2.2" fill="#5eead4" stroke="none"/></pattern></defs><rect class="seat" x="0" y="8" width="240" height="48" fill="url(#seat)"/><rect class="lit" x="0" y="8" width="156" height="48" fill="url(#seat-on)"/></svg>
       </article>
       <article class="card mini reveal">
+        <img class="shot" src="img/steering-720.webp" srcset="img/steering-720.webp 720w, img/steering-1200.webp 1200w" sizes="(min-width: 900px) 600px, (min-width: 721px) 50vw, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
         <span class="mono"><span class="en">Personal · Embedded</span><span class="zh" lang="zh-Hans">个人项目 · 嵌入式</span></span>
         <h3><span class="en">Electro-hydraulic steering controller</span><span class="zh" lang="zh-Hans">电动液压助力转向控制器</span></h3>
         <p><span class="en">ESP32 controller for a retrofit power-steering pump: speed-based assist curve, CAN transport and a safety state machine. Simulation-stage and host-tested, with the protocol deliberately mocked until verified on the bench.</span><span class="zh" lang="zh-Hans">为改装的助力转向泵开发的 ESP32 控制器：随车速变化的助力曲线、CAN 通信与安全状态机。目前处于仿真阶段，已在主机端完成测试；在台架验证之前，通信协议特意以模拟实现代替。</span></p>
-        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><path d="M8 4V56H236"/><path class="dash" d="M73 25V56"/><path class="draw" d="M8 12C70 12 90 48 236 50"/><circle class="fill" cx="73" cy="24.8" r="3"/></svg>
       </article>
       <article class="card mini reveal" style="--d:.08s">
+        <img class="shot" src="img/roadmap-720.webp" srcset="img/roadmap-720.webp 720w, img/roadmap-1200.webp 1200w" sizes="(min-width: 900px) 600px, (min-width: 721px) 50vw, calc(100vw - 80px)" width="1200" height="800" alt="" loading="lazy" decoding="async">
         <span class="mono"><span class="en">Strategy · Industry 4.0</span><span class="zh" lang="zh-Hans">战略规划 · 工业 4.0</span></span>
         <h3><span class="en">Two-plant digitalisation roadmap</span><span class="zh" lang="zh-Hans">两座工厂的数字化路线图</span></h3>
         <p><span class="en">A seven-phase plan costed in real builder-hours, with a two-year payback rule, independently read baselines and an explicit point where expansion must stop or hire.</span><span class="zh" lang="zh-Hans">一份分七个阶段的规划，以真实的开发工时核算成本，设有两年回本的硬性规则、由他人独立读取的基线数据，并明确规定了何时必须停止扩张或增聘人手。</span></p>
-        <svg class="ill" viewBox="0 0 240 64" aria-hidden="true" focusable="false"><path d="M0 58H240"/><g class="bars"><rect x="4" y="48" width="24" height="10" rx="2"/><rect style="--n:1" x="38" y="42" width="24" height="16" rx="2"/><rect style="--n:2" x="72" y="36" width="24" height="22" rx="2"/><rect style="--n:3" x="106" y="30" width="24" height="28" rx="2"/><rect style="--n:4" x="140" y="24" width="24" height="34" rx="2"/><rect style="--n:5" x="174" y="18" width="24" height="40" rx="2"/><rect style="--n:6" x="208" y="12" width="24" height="46" rx="2"/></g></svg>
       </article>
     </div>
   </div>
@@ -875,7 +871,7 @@ var show = function (el) {
   el.classList.add('in');
   if (el.classList.contains('facts') && !reduce.matches) countFacts(el);
 };
-var targets = $$('.reveal, .case ul, .tags, .ill');
+var targets = $$('.reveal, .case ul, .tags');
 if (!hasIO) {
   targets.forEach(show);
   flows.forEach(function (f) { f.classList.add('in'); });
